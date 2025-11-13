@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
   output_vad = args.output_vad;
   output_wav = args.output_wav;
   alpha1     = atof(args.alpha1);
+  alpha2     = atof(args.alpha1);
 
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);

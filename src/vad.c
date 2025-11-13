@@ -14,7 +14,7 @@ const float FRAME_TIME = 10.0F; /* in ms. */
  */
 
 const char *state_str[] = {
-  "UNDEF", "S", "V", "INIT"
+  "UNDEF", "S", "V", "INIT", "POSIBLE_V", "POSIBLE_S"
 };
 
 const char *state2str(VAD_STATE st) {
@@ -56,6 +56,12 @@ VAD_DATA * vad_open(float rate) {
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
   vad_data->frame_length = rate * FRAME_TIME * 1e-3;
+
+  vad_data->alpha1=alpha1;
+  vad_data->alpha2 = alpha2;
+  vad_data->contador_posibles = 0;
+ 
+
   return vad_data;
 }
 
@@ -87,12 +93,25 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1) {
 
   Features f = compute_features(x, vad_data->frame_length);
   vad_data->last_feature = f.p; /* save feature, in case you want to show */
+   float time_passed = FRAME_TIME * 1e-3 * vad_data->contador_posibles; //TIEMPO CUANDO ESTAMOS EN ESTADO POSIBLE_V Ó POSIBLE_S
 
   switch (vad_data->state) {
   case ST_INIT:
-    vad_data ->p0 = f.p;
-    vad_data ->p1 = vad_data ->p0 + alpha1;
-    vad_data->state = ST_SILENCE;
+
+
+ if(nint==15){
+      vad_data->p0 = 10*log10((vad_data->p0)/nint) + vad_data->alpha1;
+      //fprintf(stdout, "%f", vad_data->umbral1);
+      vad_data->p1 = vad_data->p0 + vad_data->alpha2;
+      vad_data->state = ST_SILENCE;
+      nint =0;
+    }
+    else{
+        
+        vad_data->p0 += pow(10, (f.p/10) );
+        //fprintf(stdout, "%f", vad_data->umbral1);
+        nint++;
+      }
     break;
 
   case ST_SILENCE:
