@@ -60,8 +60,8 @@ VAD_DATA * vad_open(float rate, float alpha1) {
   
   vad_data->init_count = 0; //Inicializar a 0
   vad_data->sum_potencia_inicial = 0.0f; //inicializamos la acumulacion a 0
-  vad_data->alpha1 = alpha1; //Margen inferior que se pasa por parametro
-  vad_data->alpha2 = alpha1 - 10.0f; //Margen superior que se pasa por parametro
+  vad_data->alpha1 = alpha1; //Margen V
+  vad_data->alpha2 = alpha1 - 10.0f; //Margen S ajustado
 
   vad_data->contador_posibles = 0; //Inicializar a 0
   vad_data->contador_segmentos = 0;
