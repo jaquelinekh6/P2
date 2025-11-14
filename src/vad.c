@@ -64,6 +64,7 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2) {
   vad_data->alpha2 = alpha2; //Margen superior que se pasa por parametro
 
   vad_data->contador_posibles = 0; //Inicializar a 0
+  vad_data->contador_segmentos = 0;
 
   return vad_data;
 }
@@ -87,7 +88,7 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
  * using a Finite State Automata
  */
 
-VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1, float alpha2) {
+VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
   /* 
    * TODO: You can change this, using your own features,
@@ -103,17 +104,16 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1, float alpha2) {
   /* Acumula la potencia de los primeros frames para calcular el ruido de fondo
    * y asi definir los umbrales
    */
-    float potencia = compute_power(x, vad_data->frame_length); //Obtenemos la potencia
-    vad_data->sum_potencia_inicial += potencia; //Acumulaciön de potencias
+    vad_data->sum_potencia_inicial += compute_power(x, vad_data->frame_length);//Acumulaciön de potencias
     vad_data->init_count++; 
     
     if (vad_data->init_count >= N_INIT_FRAMES) { 
-        float potencia_media = vad_data->sum_potencia_inicial / vad_data->init_count;
-        vad_data->p0 = potencia_media + alpha2; //Umbral inferior (S)
-        vad_data->p1 = potencia_media + alpha1 + alpha2; //Umbral superior (V)
+      float media_inicial = vad_data->sum_potencia_inicial / vad_data->init_count;
+      vad_data->p0 = media_inicial + vad_data->alpha2; //Umbral inferior (S)
+      vad_data->p1 = media_inicial + vad_data->alpha1 + vad_data->alpha2; //Umbral superior (V)
     
-    vad_data->state = ST_SILENCE;
-    vad_data->contador_segmentos = 0;
+      vad_data->state = ST_SILENCE; //Estado por default inicialmente
+      vad_data->contador_segmentos = 0;
     }
     break;
 
@@ -126,7 +126,21 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1, float alpha2) {
       vad_data->contador_posibles = 1; 
       vad_data->state = ST_POSIBLE_V;
     }
-
+    break;
+  
+  case ST_POSIBLE_V: 
+  /* Si hay un numero de frames consecutivos que son sup a p1, se confirma V 
+   * Si la potencia baja -> vuelve al estado de S
+   */
+    if (f.p < vad_data ->p1){
+      vad_data->contador_posibles++;
+      if(vad_data->contador_posibles >=N_POSIBLES)
+      vad_data->state = ST_VOICE;
+      vad_data->contador_segmentos = 1;
+      
+    } else {
+      vad_data->state = ST_SILENCE;
+    }
     break;
 
   case ST_VOICE: 
@@ -155,20 +169,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1, float alpha2) {
     }
     break;
 
-  case ST_POSIBLE_V: 
-  /* Si hay un numero de frames consecutivos que son sup a p1, se confirma V 
-   * Si la potencia baja -> vuelve al estado de S
-   */
-    if (f.p < vad_data ->p1){
-      vad_data->contador_posibles++;
-      if(vad_data->contador_posibles >=N_POSIBLES)
-      vad_data->state = ST_VOICE;
-      vad_data->contador_segmentos = 1;
-      
-    } else {
-      vad_data->state = ST_SILENCE;
-    }
-    break;
+  
 
   case ST_UNDEF:
     break;

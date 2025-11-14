@@ -2,7 +2,7 @@
 #define _VAD_H
 
 #define N_INIT_FRAMES 15        //Para calcular el ruido de fondo
-#define N_POSIBLES 3            //Frames para confirmar cambio de estado
+#define N_POSIBLES 3            //Frames para confirmar cambio de estado de transición
 #define MIN_SEGMENT_FRAMES 15   //Duración mínima de segmento en frames (0.15s para frames de 10ms)
 
 #include <stdio.h>
@@ -35,8 +35,8 @@ typedef struct {
    /* Cuenta cuántos frames seguidos cumplen la condición para 
     * confirmar el cambio entre V y S
     */
-   int contador_posibles; 
-   int contador_segmentos; //Contar frames del segmento actual???
+   int contador_posibles; //Para contar el tiempo minimo de la transición
+   int contador_segmentos; //Para asegurar que un segmento de V/S dure al menos un tiempo minimo
    
 
 
@@ -46,7 +46,7 @@ typedef struct {
    It should return allocated and initialized values of vad_data
 
    sampling_rate: ... the sampling rate */
-VAD_DATA *vad_open(float sampling_rate);
+VAD_DATA *vad_open(float sampling_rate, float alpha1, float alpha2);
 
 /* vad works frame by frame.
    This function returns the frame size so that the program knows how
@@ -61,7 +61,7 @@ unsigned int vad_frame_size(VAD_DATA *);
 
     x: input frame
        It is assumed the length is frame_length */
-VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1);
+VAD_STATE vad(VAD_DATA *vad_data, float *x);
 
 /* Free memory
    Returns the state of the last (undecided) states. */
