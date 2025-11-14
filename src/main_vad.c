@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
   int frame_size;         /* in samples */
   float frame_duration;   /* in seconds */
   unsigned int t, last_t; /* in frames */
-  float alpha1 = 20.0f; //MARGEN PARA PASAR DE SILENCIO A VOZ 
-  float alpha2 = 10.0f; //AMRGEN PARA PASAR DE VOZ A SILENCIO 
+  float alpha1; //MARGEN PARA PASAR DE SILENCIO A VOZ 
+  //float alpha2; //AMRGEN PARA PASAR DE VOZ A SILENCIO 
 
   char	*input_wav, *output_vad, *output_wav;
 
@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
   input_wav  = args.input_wav;
   output_vad = args.output_vad;
   output_wav = args.output_wav;
-  //alpha1     = atof(args.alpha1); //Para que el usuario pueda configurar
-  //alpha2     = atof(args.alpha2);
+  alpha1     = atof(args.alpha1); //Para que el usuario pueda configurar
+ 
 
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  vad_data = vad_open(sf_info.samplerate);
+  vad_data = vad_open(sf_info.samplerate, alpha1);
   /* Allocate memory for buffers */
   frame_size   = vad_frame_size(vad_data);
   buffer       = (float *) malloc(frame_size * sizeof(float));
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
       /* TODO: copy all the samples into sndfile_out */
     }
 
-    state = vad(vad_data, buffer, alpha1, alpha2);
+    state = vad(vad_data, buffer);
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
 
     /* TODO: print only SILENCE and VOICE labels */
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     if (state != last_state) { //Si cambia de estado 
       if (t != last_t){ //Si el frame actual es diferente al frame donde empezó el segmento es diferente
         int segment_length = t -last_t;
-        if (segment_length >= MIN_SEGMENT_FRAMES) 
+        if (segment_length >= MIN_SEGMENT_FRAMES) //////CONDICIÓN
           fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
       } 
       last_state = state;

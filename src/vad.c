@@ -14,7 +14,7 @@ const float FRAME_TIME = 10.0F; /* in ms. */
  */
 
 const char *state_str[] = {
-  "UNDEF", "S", "V", "INIT"
+  "UNDEF", "S", "V", "INIT", "POSIBLE_V", "POSIVBLE_S"
 };
 
 const char *state2str(VAD_STATE st) {
@@ -51,7 +51,7 @@ Features compute_features(const float *x, int N) {
  * TODO: Init the values of vad_data
  */
 
-VAD_DATA * vad_open(float rate, float alpha1, float alpha2) { 
+VAD_DATA * vad_open(float rate, float alpha1) { 
 
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
@@ -61,7 +61,7 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2) {
   vad_data->init_count = 0; //Inicializar a 0
   vad_data->sum_potencia_inicial = 0.0f; //inicializamos la acumulacion a 0
   vad_data->alpha1 = alpha1; //Margen inferior que se pasa por parametro
-  vad_data->alpha2 = alpha2; //Margen superior que se pasa por parametro
+  vad_data->alpha2 = alpha1 - 10.0f; //Margen superior que se pasa por parametro
 
   vad_data->contador_posibles = 0; //Inicializar a 0
   vad_data->contador_segmentos = 0;
