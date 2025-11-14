@@ -14,7 +14,7 @@ const float FRAME_TIME = 10.0F; /* in ms. */
  */
 
 const char *state_str[] = {
-  "UNDEF", "S", "V", "INIT", "POSIBLE_V", "POSIBLE_S"
+  "UNDEF", "S", "V", "INIT"
 };
 
 const char *state2str(VAD_STATE st) {
@@ -51,16 +51,19 @@ Features compute_features(const float *x, int N) {
  * TODO: Init the values of vad_data
  */
 
-VAD_DATA * vad_open(float rate) {
+VAD_DATA * vad_open(float rate, float alpha1, float alpha2) { 
+
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
   vad_data->frame_length = rate * FRAME_TIME * 1e-3;
+  
+  vad_data->init_count = 0; //Inicializar a 0
+  vad_data->sum_potencia_inicial = 0.0f; //inicializamos la acumulacion a 0
+  vad_data->alpha1 = alpha1; //Margen inferior que se pasa por parametro
+  vad_data->alpha2 = alpha2; //Margen superior que se pasa por parametro
 
-  vad_data->alpha1=alpha1;
-  vad_data->alpha2 = alpha2;
-  vad_data->contador_posibles = 0;
- 
+  vad_data->contador_posibles = 0; //Inicializar a 0
 
   return vad_data;
 }
@@ -84,7 +87,7 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
  * using a Finite State Automata
  */
 
-VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1) {
+VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1, float alpha2) {
 
   /* 
    * TODO: You can change this, using your own features,
@@ -92,36 +95,79 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x, float alpha1) {
    */
 
   Features f = compute_features(x, vad_data->frame_length);
-  vad_data->last_feature = f.p; /* save feature, in case you want to show */
-   float time_passed = FRAME_TIME * 1e-3 * vad_data->contador_posibles; //TIEMPO CUANDO ESTAMOS EN ESTADO POSIBLE_V Ó POSIBLE_S
+  vad_data->last_feature = f.p; /* Potencia acutal: save feature, in case you want to show */
+   float time_passed = FRAME_TIME * 1e-3 * vad_data->contador_posibles; //Tiempo en estado transitorio de "posible"
 
   switch (vad_data->state) {
-  case ST_INIT:
-
-
- if(nint==15){
-      vad_data->p0 = 10*log10((vad_data->p0)/nint) + vad_data->alpha1;
-      //fprintf(stdout, "%f", vad_data->umbral1);
-      vad_data->p1 = vad_data->p0 + vad_data->alpha2;
-      vad_data->state = ST_SILENCE;
-      nint =0;
+  case ST_INIT: 
+  /* Acumula la potencia de los primeros frames para calcular el ruido de fondo
+   * y asi definir los umbrales
+   */
+    float potencia = compute_power(x, vad_data->frame_length); //Obtenemos la potencia
+    vad_data->sum_potencia_inicial += potencia; //Acumulaciön de potencias
+    vad_data->init_count++; 
+    
+    if (vad_data->init_count >= N_INIT_FRAMES) { 
+        float potencia_media = vad_data->sum_potencia_inicial / vad_data->init_count;
+        vad_data->p0 = potencia_media + alpha2; //Umbral inferior (S)
+        vad_data->p1 = potencia_media + alpha1 + alpha2; //Umbral superior (V)
+    
+    vad_data->state = ST_SILENCE;
+    vad_data->contador_segmentos = 0;
     }
-    else{
-        
-        vad_data->p0 += pow(10, (f.p/10) );
-        //fprintf(stdout, "%f", vad_data->umbral1);
-        nint++;
-      }
     break;
 
   case ST_SILENCE:
-    if (f.p > vad_data ->p1)
-      vad_data->state = ST_VOICE;
+    vad_data->contador_segmentos++;
+  /* Si la potencia supera p1, podria ser voz 
+   * (cambiamos a estado ST_POSIBLE_V) y se reinicia el contador
+   */
+    if (f.p > vad_data ->p1){
+      vad_data->contador_posibles = 1; 
+      vad_data->state = ST_POSIBLE_V;
+    }
+
     break;
 
-  case ST_VOICE:
-    if (f.p < vad_data ->p1)
+  case ST_VOICE: 
+    vad_data->contador_posibles++;
+  /* Si la potencia baja de p0, podria ser una pequeña pausa de voz 
+   * (cambiamos a estado ST_POSIBLE_S) y se reinicia el contador
+   */
+    if (f.p < vad_data ->p0){
+      vad_data->contador_posibles = 1;
+      vad_data->state = ST_POSIBLE_S;
+    }
+    break;
+
+  case ST_POSIBLE_S: 
+  /* Si hay un numero de frames consecutivos que son inf a p0, se confirma S 
+   * Si la potencia sube -> vuelve al estado de V
+   */
+    if (f.p < vad_data ->p0){
+      vad_data->contador_posibles++;
+      if(vad_data->contador_posibles >=N_POSIBLES)
       vad_data->state = ST_SILENCE;
+      vad_data->contador_segmentos = 1;
+
+    } else {
+      vad_data->state = ST_VOICE;
+    }
+    break;
+
+  case ST_POSIBLE_V: 
+  /* Si hay un numero de frames consecutivos que son sup a p1, se confirma V 
+   * Si la potencia baja -> vuelve al estado de S
+   */
+    if (f.p < vad_data ->p1){
+      vad_data->contador_posibles++;
+      if(vad_data->contador_posibles >=N_POSIBLES)
+      vad_data->state = ST_VOICE;
+      vad_data->contador_segmentos = 1;
+      
+    } else {
+      vad_data->state = ST_SILENCE;
+    }
     break;
 
   case ST_UNDEF:

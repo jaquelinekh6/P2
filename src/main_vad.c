@@ -23,7 +23,8 @@ int main(int argc, char *argv[]) {
   int frame_size;         /* in samples */
   float frame_duration;   /* in seconds */
   unsigned int t, last_t; /* in frames */
-  float alpha1;
+  float alpha1; //MARGEN PARA PASAR DE SILENCIO A VOZ 
+  float alpha2; //AMRGEN PARA PASAR DE VOZ A SILENCIO 
 
   char	*input_wav, *output_vad, *output_wav;
 
