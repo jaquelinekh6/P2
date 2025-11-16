@@ -141,101 +141,38 @@ Ejercicios
   potencia y la tasa de cruces por cero, junto con el etiquetado manual de los segmentos.
 
 ![alt text](<img/figura 1.png>)
-Figura 1
 
 - A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
 
-	* Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para estar seguros de que un segmento de señal se corresponde con voz.
+	* Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
+	  estar seguros de que un segmento de señal se corresponde con voz.
 
-		<span style="color:purple">Como vemos en la imagen, necesitamos un incremento de **20 dBs** para asegurarnos que hay un cambio a voz. </span>
-
+	  <span style="color:gray">Vemos que el silencio esta siempre por debo de los 20 dBs. Cuando pasamos a voz, vemos un claro incremento de mínimo 20 dBs. </span>
 
 	* Duración mínima razonable de los segmentos de voz y silencio.
 
-		<span style="color:purple">Vemos que son segmentos de **200 ms** como mínimo. </span>
-
+		<span style="color:gray">La duración mínima para asegurarnos que se trata de voz, en nuestro caso, sería de unos 150 a 250 ms. </span>
 
 	* ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
-
-		<span style="color:purple">
 		
-		La tasa de cruces por cero **disminuye cuando estamos hablando**, ya que la mayoria del tiempo emitimos sonidos sonoros los cuales podemos considerar ciertamente periódicos 
-		
-		**El ruido blanco**, sin embargo, **tiene una tasa de cruces por 0 muy elevado**, ya que es una señal muy aleaotoria. Sin embargo, no nos es de gran ayuda dado que los sonidos como la **"s" o la "f" también tienen una tasa muy alta**, y en este caso nos podria llevar a error. 
-
-		Sería quizás un segundo discriminante interesante, en caso de que hubiese dudas clasificando únicamente partiendo de la potencia de la señal.
-
-		</span>
+		<span style="color:gray">La tasa de cruces por cero es interesante para diferenciar sonidos como la "s" o la "f". También es cierto que cuando hay ruido de fondo la señal se vuelve mas aleatoria y por ello la tasa también sería mayor. Pero a nivel práctico, en este caso, no es una herramienta que nos vaya a ayudar demasiado en la distinción de silencio o voz.</span>
 
 
 ### Desarrollo del detector de actividad vocal
 
-- Complete el código de los ficheros de la práctica para implementar un 	detector de actividad vocal en
+- Complete el código de los ficheros de la práctica para implementar un detector de actividad vocal en
   tiempo real tan exacto como sea posible. Tome como objetivo la maximización de la puntuación-F `TOTAL`.
 
-  <span style="color:purple">
   
-  Para maximizar la puntuación F TOTAL, se ha implementado un **FSA con estados transitorios** (ST_POSIBLE_V, ST_POSIBLE_S) y se ha realizado un barrido de parámetros para optimizar las constantes de potencia y tiempo.Los parámetros óptimos encontrados son: 
-  
-	| Constante | Valor |
-	|----------|----------|
-	| Alpha 1    | 10.25   |
-	| Alpha 2    | 0.75   |
-	| N_POSIBLES    | 2   |
-	| MIN_SEGMNENT_FRAMES    | 10   |
-  
-  </span>
 
 - Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección
   automática conseguida para el fichero grabado al efecto. 
 
-  ![alt text](<img/figura 2.png>)
-
-	<span style="color:purple">
-	
-	La el primer .lab es el que ha generado nuestro codigo y el segundo es el ground truth. 
-	
-	</span>
-
-
-
 - Explique, si existen. las discrepancias entre el etiquetado manual y la detección automática.
-
-	<span style="color:purple">
-	
-	Nuestro audio en concreto no tiene mucho espacio de silencio, son dos frases muy seguidas, y como hemos ajustado el código a un dataset con silencios más largos, en nuestro audio particular no funciona demasiado bien. 
-
-	Sí que vemos por ejemplo que detecta correctamente el inicio de la frase. 
-	
-	</span>
 
 - Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a 
   continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
   el resumen).
-
-	<span style="color:purple">
-
-  	**Summary:**
-
-	Recall V: 469.88/495.55 94.82%
-	
-	Precision V:469.88/528.21 88.96%   
-	
-	F-score V (2)  : 93.59%
-
-	Recall S:262.84/321.17 81.84%   
-	
-	Precision S:262.84/288.51 91.10%   
-	
-	F-score S (1/2): 89.09%
-
-	**-> TOTAL: 91.309%**
-
-	
-	Vemos que para esta base de datos hemos conseguido un resultado más que correcto. 
-
-	<span style="color:purple">
-
 
 
 ### Trabajos de ampliación
@@ -257,26 +194,8 @@ Figura 1
 - Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o 
   parámetros alternativos, etc.).
 
-	<span style="color:purple">
-
-	La contribución principal fue la **optimización exhaustiva** de los de potencia y tiempo del detector VAD:
-
-	- Se determinó el valor óptimo de **$\alpha_1 = 10.25$ y $\alpha_2 = 0.75$** para los umbrales de detección.
-
-	- Se validó que el uso de $N_{POSIBLES}=2$ y $MIN_{SEGMENT\_FRAMES}=10$ maximiza el balance entre sensibilidad y estabilidad.
-
-	</span>
-
-
 - Si lo desea, puede realizar también algún comentario acerca de la realización de la práctica que
-	considere de interés de cara a su evaluación.
-
-	<span style="color:purple">
-
-	La implementación del Autómata Finito de Estados (FSA) con estados transitorios (ST_POSIBLE_V/S) **ha demostrado ser considerable para la robustez del VAD.** 
-	
-
-	</span>
+  considere de interés de cara a su evaluación.
 
 
 ### Antes de entregar la práctica

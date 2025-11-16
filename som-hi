@@ -1,7 +1,14 @@
 #! /usr/bin/env bash
 
-for alpha1 in $(seq 10 0.1 12); do
+# Barrido de OFFSET: Prueba valores para el OFFSET = (alpha1 - alpha2)
+# Rango de prueba: [7.0, 7.25, ..., 14.0]
+# El valor alpha_offset será el argumento que se pase a 'run_vad.sh'
+for alpha_offset in $(seq 7 0.25 14); do
 
-    echo -ne "$alpha1\t"
-    scripts/run_vad.sh $aplha1 | grep TOTAL
+    # Imprime el valor de alpha_offset en la primera columna
+    echo -ne "$alpha_offset\t"
+
+    # Ejecuta el VAD. El valor se usa internamente como alpha_offset.
+    scripts/run_vad.sh $alpha_offset | grep TOTAL
+    
 done | sort -t: -k 2n
