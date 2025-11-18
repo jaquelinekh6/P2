@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   float alpha1; //MARGEN PARA PASAR DE SILENCIO A VOZ 
   //float alpha2; //AMRGEN PARA PASAR DE VOZ A SILENCIO 
 
-  char	*input_wav, *output_vad, *output_wav;
+  char  *input_wav, *output_vad, *output_wav;
 
   DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0");
 
@@ -75,7 +75,8 @@ int main(int argc, char *argv[]) {
   for (i=0; i< frame_size; ++i) buffer_zeros[i] = 0.0F;
 
   frame_duration = (float) frame_size/ (float) sf_info.samplerate;
-  last_state = ST_UNDEF;
+  // INICIALIZACIÓN CLAVE: last_state debe ser INIT para el primer segmento.
+  last_state = ST_INIT; 
 
   for (t = last_t = 0; ; t++) { /* For each frame ... */
     /* End loop when file has finished (or there is an error) */
@@ -87,28 +88,54 @@ int main(int argc, char *argv[]) {
 
     state = vad(vad_data, buffer);
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
+    
+    // Si el estado actual es un estado DEFINITIVO (S o V) y ha habido un cambio, 
+    // imprimimos el segmento anterior.
+    if ((state == ST_SILENCE || state == ST_VOICE) && (state != last_state)) { 
+        
+        // El segmento anterior (last_state) ha finalizado en el tiempo 't'.
+        
+        // 1. Manejo del segmento anterior (ya sea S o V)
+        if (last_state == ST_SILENCE || last_state == ST_VOICE) {
+            fprintf(vadfile, "%.5f\t%.5f\t%s\n", 
+                    last_t * frame_duration, 
+                    t * frame_duration, 
+                    state2str(last_state));
+            
+        } 
+        // 2. Manejo de la Inicialización (De ST_INIT a ST_SILENCE)
+        else if (last_state == ST_INIT) {
+            // Este es el primer segmento (de 0.0 hasta el final de la inicialización).
+            // Lo etiquetamos como SILENCIO.
+            fprintf(vadfile, "%.5f\t%.5f\t%s\n", 
+                    0.0F, // Comienza en 0.0
+                    t * frame_duration, 
+                    state2str(ST_SILENCE));
+        }
 
-    /* TODO: print only SILENCE and VOICE labels */
-    /* As it is, it prints UNDEF segments but is should be merge to the proper value */
-    if (state != last_state) { //Si cambia de estado 
-      if (t != last_t){ //Si el frame actual es diferente al frame donde empezó el segmento es diferente
-        int segment_length = t -last_t;
-        if (segment_length >= MIN_SEGMENT_FRAMES) //////CONDICIÓN
-          fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
-      } 
-      last_state = state;
-      last_t = t;
+        // 3. Actualizamos las variables para el nuevo segmento
+        // last_state es ahora el estado definitivo 'state' (S o V)
+        last_state = state; 
+        last_t = t;
     }
+    
+    // NOTA: Si 'state' es un estado transitorio (POSIBLE_V/S), no se imprime nada,
+    // y 'last_state' se mantiene, esperando a que el estado se confirme o se revierta.
 
     if (sndfile_out != 0) {
       /* TODO: go back and write zeros in silence segments */
     }
   }
 
-  state = vad_close(vad_data);
+  // Cierre: vad_close se encarga de resolver el estado final (que es ahora S o V)
+  state = vad_close(vad_data); 
   /* TODO: what do you want to print, for last frames? */
+  // Se imprime el último segmento si hay frames pendientes.
   if (t != last_t)
-    fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration + n_read / (float) sf_info.samplerate, state2str(state));
+    fprintf(vadfile, "%.5f\t%.5f\t%s\n", 
+            last_t * frame_duration, 
+            t * frame_duration + n_read / (float) sf_info.samplerate, 
+            state2str(state)); // 'state' ya está resuelto a S o V por vad_close
 
   /* clean up: free memory, close open files */
   free(buffer);

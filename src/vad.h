@@ -1,14 +1,14 @@
 #ifndef _VAD_H
 #define _VAD_H
 
-#define N_INIT_FRAMES 15        //Para calcular el ruido de fondo
-#define N_POSIBLES 3            //Frames para confirmar cambio de estado de transición
-#define MIN_SEGMENT_FRAMES 15   //Duración mínima de segmento en frames (0.15s para frames de 10ms)
+#define N_INIT_FRAMES 10        //Para calcular el ruido de fondo
+#define N_POSIBLES 2            //Frames para confirmar cambio de estado de transición (Aumentado de 3 a 4)
+#define MIN_SEGMENT_FRAMES 10   //Duración mínima de segmento en frames (0.15s para frames de 10ms)
 
 #include <stdio.h>
 
 /* TODO: add the needed states */
-typedef enum {ST_UNDEF=0, ST_SILENCE, ST_VOICE, ST_INIT, ST_POSIBLE_V, ST_POSIBLE_S} VAD_STATE;
+typedef enum {ST_UNDxEF=0, ST_SILENCE, ST_VOICE, ST_INIT, ST_POSIBLE_V, ST_POSIBLE_S} VAD_STATE;
 
 /* Return a string label associated to each state */
 const char *state2str(VAD_STATE st);
@@ -49,7 +49,7 @@ typedef struct {
 VAD_DATA *vad_open(float sampling_rate, float alpha1);
 
 /* vad works frame by frame.
-   This function returns the frame size so that the program knows how
+   This function returns the frame size so que the program knows how
    many samples have to be provided */
 unsigned int vad_frame_size(VAD_DATA *);
 
